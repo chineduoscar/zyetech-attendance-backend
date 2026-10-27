@@ -6,30 +6,32 @@ const isValidId = (id) =>
   /^\d+$/.test(id) &&
   BigInt(id) > 0n &&
   BigInt(id) <= 9223372036854775807n;
+const isValidStaffNumber = (value) =>
+  typeof value === "string" && /^E\d{2}\/\d{3,}$/i.test(value.trim());
 
 export async function recordStaffAttendance(req, res) {
-  const { name, course } = req.body ?? {};
+  const { identifier } = req.body ?? {};
 
-  if (!isNonEmptyString(name) || !isNonEmptyString(course)) {
+  if (!isValidStaffNumber(identifier)) {
     return res.status(400).json({
       success: false,
-      message: "Name and course are required.",
-      data: null,
-    });
-  }
-  if (name.trim().length > 150 || course.trim().length > 100) {
-    return res.status(400).json({
-      success: false,
-      message: "Name must be 150 characters or fewer and course 100 characters or fewer.",
+      message: "Enter a valid staff number, for example E26/001.",
       data: null,
     });
   }
 
   try {
     const attendance = await StaffAttendance.create({
-      name: name.trim(),
-      course: course.trim(),
+      staffNumber: identifier.trim(),
     });
+
+    if (!attendance) {
+      return res.status(404).json({
+        success: false,
+        message: "No active staff member was found with that staff number.",
+        data: null,
+      });
+    }
 
     return res.status(201).json({
       success: true,

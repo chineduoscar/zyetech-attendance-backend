@@ -6,9 +6,10 @@ import authRoutes from "./src/routes/authRoutes.js";
 import analyticsRoutes from "./src/routes/analyticsRoutes.js";
 import studentAttendanceRoutes from "./src/routes/studentAttendanceRoutes.js";
 import staffAttendanceRoutes from "./src/routes/staffAttendanceRoutes.js";
-import { createDirectoryRoutes } from "./src/routes/directoryRoutes.js";
 import receiptRoutes from "./src/routes/receiptRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
+import studentRoutes from "./src/routes/studentRoutes.js";
+import staffRoutes from "./src/routes/staffRoutes.js";
 import { swaggerSpec } from "./src/config/swagger.js";
 import { initDatabase, pool } from "./src/config/db.js";
 import { protectCookieRequests } from "./src/middleware/csrfMiddleware.js";
@@ -39,8 +40,8 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/student-attendance", studentAttendanceRoutes);
 app.use("/api/staff-attendance", staffAttendanceRoutes);
-app.use("/api/students", createDirectoryRoutes("students"));
-app.use("/api/staff", createDirectoryRoutes("staff"));
+app.use("/api/students", studentRoutes);
+app.use("/api/staff", staffRoutes);
 app.use("/api/receipts", receiptRoutes);
 
 const start = async () => {

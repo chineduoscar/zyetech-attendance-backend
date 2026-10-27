@@ -6,25 +6,19 @@ const isValidId = (id) =>
   /^\d+$/.test(id) &&
   BigInt(id) > 0n &&
   BigInt(id) <= 9223372036854775807n;
+const isValidStudentNumber = (value) =>
+  typeof value === "string" && /^S\d{2}\/\d{3,}$/i.test(value.trim());
 
 export async function recordStudentAttendance(req, res) {
-  const { name, course, session } = req.body ?? {};
+  const { identifier, session } = req.body ?? {};
 
-  if (!isNonEmptyString(name) || !isNonEmptyString(course)) {
+  if (!isValidStudentNumber(identifier)) {
     return res.status(400).json({
       success: false,
-      message: "Name and course are required.",
+      message: "Enter a valid student number, for example S26/001.",
       data: null,
     });
   }
-  if (name.trim().length > 150 || course.trim().length > 100) {
-    return res.status(400).json({
-      success: false,
-      message: "Name must be 150 characters or fewer and course 100 characters or fewer.",
-      data: null,
-    });
-  }
-
   if (session !== undefined && session !== null && typeof session !== "string") {
     return res.status(400).json({
       success: false,
@@ -35,10 +29,17 @@ export async function recordStudentAttendance(req, res) {
 
   try {
     const attendance = await StudentAttendance.create({
-      name: name.trim(),
-      course: course.trim(),
+      studentNumber: identifier.trim(),
       session: typeof session === "string" ? session.trim() || null : null,
     });
+
+    if (!attendance) {
+      return res.status(404).json({
+        success: false,
+        message: "No active student was found with that student number.",
+        data: null,
+      });
+    }
 
     return res.status(201).json({
       success: true,
