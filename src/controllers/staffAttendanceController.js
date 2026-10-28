@@ -32,6 +32,13 @@ export async function recordStaffAttendance(req, res) {
         data: null,
       });
     }
+    if (attendance.alreadyMarked) {
+      return res.status(409).json({
+        success: false,
+        message: "This staff member has already signed attendance today.",
+        data: null,
+      });
+    }
 
     return res.status(201).json({
       success: true,

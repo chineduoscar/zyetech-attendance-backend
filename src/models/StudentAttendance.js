@@ -6,7 +6,7 @@ class StudentAttendance {
     try {
       await client.query("BEGIN");
       const studentResult = await client.query(
-        `SELECT id, student_number, name, email, phone, course
+        `SELECT id, student_number, name, email, course
          FROM students
          WHERE UPPER(BTRIM(student_number)) = UPPER(BTRIM($1))
            AND status = 'active'
@@ -19,18 +19,26 @@ class StudentAttendance {
         return null;
       }
 
+      const claimResult = await client.query(
+        `INSERT INTO attendance_daily_claims (kind, identifier, attendance_date)
+         VALUES ('S', UPPER(BTRIM($1)), CURRENT_DATE)
+         ON CONFLICT DO NOTHING
+         RETURNING identifier`,
+        [student.student_number],
+      );
+      if (claimResult.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return { alreadyMarked: true };
+      }
+
       const attendanceResult = await client.query(
-        `INSERT INTO student_attendance (name, course, "session", student_number)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, name, course, "session", student_number, created_at`,
+        `INSERT INTO student_attendance (name, course, "session", student_number, attendance_date)
+         VALUES ($1, $2, $3, $4, CURRENT_DATE)
+         RETURNING id, name, course, "session", student_number, attendance_date, created_at`,
         [student.name, student.course, session, student.student_number],
       );
       await client.query("COMMIT");
-      return {
-        ...attendanceResult.rows[0],
-        email: student.email,
-        phone: student.phone,
-      };
+      return { ...attendanceResult.rows[0], email: student.email };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -41,7 +49,7 @@ class StudentAttendance {
 
   static async findAll() {
     const result = await pool.query(
-      `SELECT id, student_number, name, course, "session", created_at
+      `SELECT id, student_number, name, course, "session", attendance_date, created_at
        FROM student_attendance
        ORDER BY created_at DESC, id DESC`,
     );
@@ -54,7 +62,7 @@ class StudentAttendance {
       `UPDATE student_attendance
        SET name = $2, course = $3, "session" = $4
        WHERE id = $1
-       RETURNING id, student_number, name, course, "session", created_at`,
+       RETURNING id, student_number, name, course, "session", attendance_date, created_at`,
       [id, name, course, session],
     );
 
@@ -65,7 +73,7 @@ class StudentAttendance {
     const result = await pool.query(
       `DELETE FROM student_attendance
        WHERE id = $1
-       RETURNING id, student_number, name, course, "session", created_at`,
+       RETURNING id, student_number, name, course, "session", attendance_date, created_at`,
       [id],
     );
 

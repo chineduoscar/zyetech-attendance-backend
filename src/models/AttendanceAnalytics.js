@@ -9,14 +9,12 @@ class AttendanceAnalytics {
         (
           SELECT COUNT(*)
           FROM student_attendance
-          WHERE created_at >= date_trunc('day', NOW())
-            AND created_at < date_trunc('day', NOW()) + INTERVAL '1 day'
+          WHERE attendance_date = CURRENT_DATE
         ) AS student_attendance_today,
         (
           SELECT COUNT(*)
           FROM staff_attendance
-          WHERE created_at >= date_trunc('day', NOW())
-            AND created_at < date_trunc('day', NOW()) + INTERVAL '1 day'
+          WHERE attendance_date = CURRENT_DATE
         ) AS staff_attendance_today,
         (
           SELECT COUNT(*)

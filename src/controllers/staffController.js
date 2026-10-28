@@ -29,7 +29,7 @@ const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 const validateRegistration = (body) => {
   const errors = {};
-  const { name, email, phone, roles } = body;
+  const { name, email, roles } = body;
 
   if (typeof name !== "string" || !name.trim()) {
     errors.name = "Name is required.";
@@ -52,18 +52,11 @@ const validateRegistration = (body) => {
     errors.roles = "Select only valid staff roles.";
   }
 
-  if (phone !== undefined && phone !== null && typeof phone !== "string") {
-    errors.phone = "Phone must be a string.";
-  } else if (typeof phone === "string" && phone.trim().length > 50) {
-    errors.phone = "Phone must be 50 characters or fewer.";
-  }
-
   return {
     errors,
     staff: {
       name: typeof name === "string" ? name.trim() : "",
       email: typeof email === "string" ? email.trim().toLowerCase() : "",
-      phone: typeof phone === "string" ? phone.trim() || null : null,
       roles: Array.isArray(roles) ? [...new Set(roles)] : [],
     },
   };

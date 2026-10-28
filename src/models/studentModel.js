@@ -9,7 +9,7 @@ class StudentModel {
     return result.rowCount > 0;
   }
 
-  static async create({ name, email, phone, course, receipt }) {
+  static async create({ name, email, course, receipt }) {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -26,10 +26,10 @@ class StudentModel {
         counterResult.rows[0].last_value,
       ).padStart(3, "0")}`;
       const studentResult = await client.query(
-        `INSERT INTO students (name, email, phone, course, student_number)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, student_number, name, email, phone, course, status, created_at, updated_at`,
-        [name, email, phone, course, studentNumber],
+        `INSERT INTO students (name, email, course, student_number)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, student_number, name, email, course, status, created_at, updated_at`,
+        [name, email, course, studentNumber],
       );
       const student = studentResult.rows[0];
       let createdReceipt = null;
@@ -63,7 +63,7 @@ class StudentModel {
 
   static async findAll() {
     const result = await pool.query(
-      `SELECT students.id, students.student_number, students.name, students.email, students.phone,
+      `SELECT students.id, students.student_number, students.name, students.email,
               students.course, students.status, students.created_at, students.updated_at,
               COUNT(receipts.id)::integer AS receipt_count,
               COALESCE(SUM(receipts.amount), 0) AS total_paid
@@ -77,7 +77,7 @@ class StudentModel {
 
   static async findById(id) {
     const studentResult = await pool.query(
-      `SELECT id, student_number, name, email, phone, course, status, created_at, updated_at
+      `SELECT id, student_number, name, email, course, status, created_at, updated_at
        FROM students
        WHERE id = $1`,
       [id],
@@ -94,13 +94,13 @@ class StudentModel {
     return { ...studentResult.rows[0], receipts: receiptsResult.rows };
   }
 
-  static async update(id, { name, email, phone, course, status }) {
+  static async update(id, { name, email, course, status }) {
     const result = await pool.query(
       `UPDATE students
-       SET name = $2, email = $3, phone = $4, course = $5, status = $6, updated_at = NOW()
+       SET name = $2, email = $3, course = $4, status = $5, updated_at = NOW()
        WHERE id = $1
-       RETURNING id, student_number, name, email, phone, course, status, created_at, updated_at`,
-      [id, name, email, phone, course, status],
+       RETURNING id, student_number, name, email, course, status, created_at, updated_at`,
+      [id, name, email, course, status],
     );
     return result.rows[0] ?? null;
   }

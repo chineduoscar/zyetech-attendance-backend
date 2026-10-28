@@ -40,6 +40,13 @@ export async function recordStudentAttendance(req, res) {
         data: null,
       });
     }
+    if (attendance.alreadyMarked) {
+      return res.status(409).json({
+        success: false,
+        message: "This student has already signed attendance today.",
+        data: null,
+      });
+    }
 
     return res.status(201).json({
       success: true,

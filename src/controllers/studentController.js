@@ -34,7 +34,7 @@ const isValidDate = (date) => {
 
 const validateRegistration = (body) => {
   const errors = {};
-  const { name, email, course, phone, receipt } = body;
+  const { name, email, course, receipt } = body;
 
   if (typeof name !== "string" || !name.trim()) {
     errors.name = "Name is required.";
@@ -53,12 +53,6 @@ const validateRegistration = (body) => {
 
   if (typeof course !== "string" || !COURSES.includes(course)) {
     errors.course = "Select a valid course.";
-  }
-
-  if (phone !== undefined && phone !== null && typeof phone !== "string") {
-    errors.phone = "Phone must be a string.";
-  } else if (typeof phone === "string" && phone.trim().length > 50) {
-    errors.phone = "Phone must be 50 characters or fewer.";
   }
 
   let normalizedReceipt;
@@ -102,7 +96,6 @@ const validateRegistration = (body) => {
       name: typeof name === "string" ? name.trim() : "",
       email: typeof email === "string" ? email.trim().toLowerCase() : "",
       course,
-      phone: typeof phone === "string" ? phone.trim() || null : null,
       receipt: normalizedReceipt,
     },
   };
