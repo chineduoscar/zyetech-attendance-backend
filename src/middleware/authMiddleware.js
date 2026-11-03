@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { getAuthCookie } from "../utils/authCookie.js";
+import { logger } from "../utils/logger.js";
 
 export async function authenticate(req, res, next) {
   const authorization = req.get("authorization");
@@ -21,7 +22,11 @@ export async function authenticate(req, res, next) {
   }
 
   if (!process.env.JWT_SECRET) {
-    console.error("JWT_SECRET is required to authenticate requests.");
+    logger.error(
+      "auth.configuration_error",
+      new Error("JWT_SECRET is required to authenticate requests."),
+      { request_id: req.requestId },
+    );
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -41,7 +46,9 @@ export async function authenticate(req, res, next) {
       });
     }
 
-    console.error("Token verification failed:", error);
+    logger.error("auth.token_verification_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -70,7 +77,9 @@ export async function authenticate(req, res, next) {
     req.user = user;
     return next();
   } catch (error) {
-    console.error("Failed to authenticate user:", error);
+    logger.error("auth.authentication_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",

@@ -1,6 +1,7 @@
 import Receipt from "../models/Receipt.js";
 import { randomUUID } from "node:crypto";
 import { v2 as cloudinary } from "cloudinary";
+import { logger } from "../utils/logger.js";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -40,7 +41,7 @@ const removeUploadedReceipt = async (publicId) => {
   try {
     await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
   } catch (error) {
-    console.error("Failed to remove an unlinked Cloudinary receipt:", error);
+    logger.error("receipts.image_cleanup_failed", error);
   }
 };
 
@@ -189,7 +190,7 @@ export async function createReceipt(req, res) {
     if (uploadedImage?.public_id) {
       await removeUploadedReceipt(uploadedImage.public_id);
     }
-    console.error("Failed to generate receipt:", error);
+    logger.error("receipts.create_failed", error, { request_id: req.requestId });
     return res.status(500).json({
       success: false,
       message: "Unable to save the receipt and its image.",
@@ -198,7 +199,7 @@ export async function createReceipt(req, res) {
   }
 }
 
-export async function getReceipts(_req, res) {
+export async function getReceipts(req, res) {
   try {
     const receipts = await Receipt.findAll();
     return res.status(200).json({
@@ -207,7 +208,7 @@ export async function getReceipts(_req, res) {
       data: { receipts },
     });
   } catch (error) {
-    console.error("Failed to retrieve receipts:", error);
+    logger.error("receipts.list_failed", error, { request_id: req.requestId });
     return res.status(500).json({
       success: false,
       message: "An error occurred.",

@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import { logger } from "../utils/logger.js";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -61,7 +62,9 @@ export async function updateUserRole(req, res) {
         data: null,
       });
     }
-    console.error("Failed to update user role:", error);
+    logger.error("users.role_update_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -70,7 +73,7 @@ export async function updateUserRole(req, res) {
   }
 }
 
-export async function getUsers(_req, res) {
+export async function getUsers(req, res) {
   try {
     const users = await User.findAll();
     return res.status(200).json({
@@ -79,7 +82,7 @@ export async function getUsers(_req, res) {
       data: { users },
     });
   } catch (error) {
-    console.error("Failed to retrieve users:", error);
+    logger.error("users.list_failed", error, { request_id: req.requestId });
     return res.status(500).json({
       success: false,
       message: "An error occurred.",
@@ -130,7 +133,9 @@ export async function updateUserApproval(req, res) {
       data: user,
     });
   } catch (error) {
-    console.error("Failed to update user approval status:", error);
+    logger.error("users.approval_update_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred.",

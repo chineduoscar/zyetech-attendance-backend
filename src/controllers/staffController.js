@@ -1,4 +1,5 @@
 import StaffModel from "../models/staffModel.js";
+import { logger } from "../utils/logger.js";
 
 const STAFF_ROLES = [
   "AI Automation Specialist",
@@ -63,7 +64,9 @@ const validateRegistration = (body) => {
 };
 
 const sendServerError = (res, error, action) => {
-  console.error(`Failed to ${action} staff:`, error);
+  logger.error(`staff.${action.replaceAll(" ", "_")}_failed`, error, {
+    request_id: res.req?.requestId,
+  });
   return res.status(500).json({
     success: false,
     message: "An error occurred.",

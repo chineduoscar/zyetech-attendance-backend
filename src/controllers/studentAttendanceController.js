@@ -1,4 +1,5 @@
 import StudentAttendance from "../models/StudentAttendance.js";
+import { logger } from "../utils/logger.js";
 
 const isNonEmptyString = (value) =>
   typeof value === "string" && value.trim().length > 0;
@@ -54,7 +55,9 @@ export async function recordStudentAttendance(req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to record student attendance:", error);
+    logger.error("student_attendance.create_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -63,7 +66,7 @@ export async function recordStudentAttendance(req, res) {
   }
 }
 
-export async function getStudentAttendance(_req, res) {
+export async function getStudentAttendance(req, res) {
   try {
     const attendance = await StudentAttendance.findAll();
     return res.status(200).json({
@@ -72,7 +75,9 @@ export async function getStudentAttendance(_req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to retrieve student attendance:", error);
+    logger.error("student_attendance.list_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -137,7 +142,9 @@ export async function updateStudentAttendance(req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to update student attendance:", error);
+    logger.error("student_attendance.update_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -172,7 +179,9 @@ export async function deleteStudentAttendance(req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to delete student attendance:", error);
+    logger.error("student_attendance.delete_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",

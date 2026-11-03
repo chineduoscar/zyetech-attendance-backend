@@ -1,4 +1,5 @@
 import StudentModel from "../models/studentModel.js";
+import { logger } from "../utils/logger.js";
 
 const COURSES = [
   "AI Automation",
@@ -107,7 +108,9 @@ const isValidId = (id) =>
   BigInt(id) <= 9223372036854775807n;
 
 const sendServerError = (res, error, action) => {
-  console.error(`Failed to ${action} student:`, error);
+  logger.error(`students.${action.replaceAll(" ", "_")}_failed`, error, {
+    request_id: res.req?.requestId,
+  });
   return res.status(500).json({
     success: false,
     message: "An error occurred.",

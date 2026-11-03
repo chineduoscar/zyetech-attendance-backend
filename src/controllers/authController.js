@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { clearAuthCookie, setAuthCookie } from "../utils/authCookie.js";
+import { logger } from "../utils/logger.js";
 
 const createToken = (user) => {
   if (!process.env.JWT_SECRET) {
@@ -71,6 +72,11 @@ export async function register(req, res) {
 
     const token = createToken(newUser);
     setAuthCookie(res, token);
+    logger.info("auth.registration_succeeded", {
+      request_id: req.requestId,
+      user_id: newUser.id,
+      user_role: newUser.role,
+    });
 
     return res.status(201).json({
       success: true,
@@ -87,7 +93,9 @@ export async function register(req, res) {
       },
     });
   } catch (error) {
-    console.error("Register error:", error);
+    logger.error("auth.registration_failed", error, {
+      request_id: req.requestId,
+    });
 
     return res.status(500).json({
       success: false,
@@ -139,6 +147,11 @@ export async function login(req, res) {
 
     const token = createToken(user);
     setAuthCookie(res, token);
+    logger.info("auth.login_succeeded", {
+      request_id: req.requestId,
+      user_id: user.id,
+      user_role: user.role,
+    });
 
     return res.status(200).json({
       success: true,
@@ -155,7 +168,7 @@ export async function login(req, res) {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    logger.error("auth.login_failed", error, { request_id: req.requestId });
 
     return res.status(500).json({
       success: false,
@@ -173,8 +186,9 @@ export async function getCurrentUser(req, res) {
   });
 }
 
-export function logout(_req, res) {
+export function logout(req, res) {
   clearAuthCookie(res);
+  logger.info("auth.logout_succeeded", { request_id: req.requestId });
   return res.status(200).json({
     success: true,
     message: "Logged out successfully.",

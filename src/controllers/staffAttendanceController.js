@@ -1,4 +1,5 @@
 import StaffAttendance from "../models/StaffAttendance.js";
+import { logger } from "../utils/logger.js";
 
 const isNonEmptyString = (value) =>
   typeof value === "string" && value.trim().length > 0;
@@ -46,7 +47,9 @@ export async function recordStaffAttendance(req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to record staff attendance:", error);
+    logger.error("staff_attendance.create_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -55,7 +58,7 @@ export async function recordStaffAttendance(req, res) {
   }
 }
 
-export async function getStaffAttendance(_req, res) {
+export async function getStaffAttendance(req, res) {
   try {
     const attendance = await StaffAttendance.findAll();
     return res.status(200).json({
@@ -64,7 +67,9 @@ export async function getStaffAttendance(_req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to retrieve staff attendance:", error);
+    logger.error("staff_attendance.list_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -119,7 +124,9 @@ export async function updateStaffAttendance(req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to update staff attendance:", error);
+    logger.error("staff_attendance.update_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",
@@ -154,7 +161,9 @@ export async function deleteStaffAttendance(req, res) {
       data: attendance,
     });
   } catch (error) {
-    console.error("Failed to delete staff attendance:", error);
+    logger.error("staff_attendance.delete_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",

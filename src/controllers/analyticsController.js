@@ -1,4 +1,5 @@
 import AttendanceAnalytics from "../models/AttendanceAnalytics.js";
+import { logger } from "../utils/logger.js";
 
 export async function getAttendanceAnalytics(_req, res) {
   try {
@@ -9,7 +10,9 @@ export async function getAttendanceAnalytics(_req, res) {
       data: summary,
     });
   } catch (error) {
-    console.error("Failed to retrieve attendance analytics:", error);
+    logger.error("analytics.retrieve_failed", error, {
+      request_id: _req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "An error occurred",

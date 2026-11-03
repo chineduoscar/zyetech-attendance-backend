@@ -1,8 +1,13 @@
 import "dotenv/config";
 import { Pool } from "pg";
+import { logger } from "../utils/logger.js";
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+});
+
+pool.on("error", (error) => {
+  logger.error("database.idle_client_error", error);
 });
 
 export async function initDatabase() {
@@ -65,8 +70,9 @@ export async function initDatabase() {
         [process.env.BOOTSTRAP_SUPERADMIN_EMAIL.trim().toLowerCase()],
       );
       if (result.rowCount === 0) {
-        console.warn(
-          "BOOTSTRAP_SUPERADMIN_EMAIL did not match an existing user account.",
+        logger.warn(
+          "database.bootstrap_superadmin_not_found",
+          { email: process.env.BOOTSTRAP_SUPERADMIN_EMAIL.trim().toLowerCase() },
         );
       }
     }
