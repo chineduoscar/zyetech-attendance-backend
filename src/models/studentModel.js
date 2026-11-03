@@ -32,6 +32,13 @@ class StudentModel {
         [name, email, course, studentNumber],
       );
       const student = studentResult.rows[0];
+      await client.query(
+        `UPDATE receipts
+         SET student_id = $1
+         WHERE student_id IS NULL
+           AND LOWER(BTRIM(student_name)) = LOWER(BTRIM($2))`,
+        [student.id, student.name],
+      );
       let createdReceipt = null;
 
       if (receipt) {
@@ -85,7 +92,8 @@ class StudentModel {
     if (!studentResult.rows[0]) return null;
 
     const receiptsResult = await pool.query(
-      `SELECT id, student_id, student_name, course, amount, purpose, payment_date, created_at
+      `SELECT id, student_id, student_name, course, amount, purpose, payment_date,
+              created_at, receipt_number, payment_method, details, image_url
        FROM receipts
        WHERE student_id = $1
        ORDER BY payment_date DESC, id DESC`,
@@ -118,7 +126,10 @@ class StudentModel {
         return null;
       }
 
-      await client.query("DELETE FROM receipts WHERE student_id = $1", [id]);
+      await client.query(
+        "UPDATE receipts SET student_id = NULL WHERE student_id = $1",
+        [id],
+      );
       const deletedResult = await client.query(
         "DELETE FROM students WHERE id = $1 RETURNING id",
         [id],

@@ -32,7 +32,7 @@ app.use(
   }),
 );
 app.use(protectCookieRequests);
-app.use(express.json());
+app.use(express.json({ limit: "12mb" }));
 app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/auth", authRoutes);
