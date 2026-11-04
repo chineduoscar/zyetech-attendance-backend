@@ -98,10 +98,16 @@ export function authorize(...allowedRoles) {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (
+      req.user.approval_status !== "approved" ||
+      !allowedRoles.includes(req.user.role)
+    ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to access this resource.",
+        message:
+          req.user.approval_status !== "approved"
+            ? "Your account must be approved before accessing this resource."
+            : "You do not have permission to access this resource.",
         data: null,
       });
     }

@@ -8,8 +8,8 @@ class User {
     const userId = randomUUID();
 
     const result = await pool.query(
-      `INSERT INTO users (id, name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4, 'user')
+      `INSERT INTO users (id, name, email, password_hash)
+       VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, role, approval_status, created_at`,
       [userId, name.trim(), email.trim().toLowerCase(), hashedPassword],
     );
@@ -59,14 +59,16 @@ class User {
         await client.query("COMMIT");
         return null;
       }
-      if (role !== "user" && current.approval_status !== "approved") {
+      if (current.approval_status !== "approved") {
         const error = new Error("Approve the user before assigning an administrative role.");
         error.code = "USER_NOT_APPROVED";
         throw error;
       }
-      if (current.role === "superadmin" && role !== "superadmin") {
+      if (current.role === "superadmin" && role === "admin") {
         const result = await client.query(
-          "SELECT COUNT(*)::int AS count FROM users WHERE role = 'superadmin'",
+          `SELECT COUNT(*)::int AS count
+           FROM users
+           WHERE role = 'superadmin' AND approval_status = 'approved'`,
         );
         if (result.rows[0].count <= 1) {
           const error = new Error("At least one superadmin account must remain.");
@@ -103,15 +105,57 @@ class User {
   }
 
   static async updateApprovalStatus(id, approvalStatus) {
-    const result = await pool.query(
-      `UPDATE users
-       SET approval_status = $2, updated_at = NOW()
-       WHERE id = $1 AND role = 'user'
-       RETURNING id, name, email, role, approval_status, created_at, updated_at`,
-      [id, approvalStatus],
-    );
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtext('users-superadmin-role-change'))",
+      );
+      const currentResult = await client.query(
+        `SELECT id, role, approval_status
+         FROM users
+         WHERE id = $1
+         FOR UPDATE`,
+        [id],
+      );
+      const current = currentResult.rows[0];
+      if (!current) {
+        await client.query("COMMIT");
+        return null;
+      }
 
-    return result.rows[0];
+      if (
+        approvalStatus === "pending" &&
+        current.role === "superadmin" &&
+        current.approval_status === "approved"
+      ) {
+        const result = await client.query(
+          `SELECT COUNT(*)::int AS count
+           FROM users
+           WHERE role = 'superadmin' AND approval_status = 'approved'`,
+        );
+        if (result.rows[0].count <= 1) {
+          const error = new Error("At least one approved superadmin account must remain.");
+          error.code = "LAST_SUPERADMIN";
+          throw error;
+        }
+      }
+
+      const result = await client.query(
+        `UPDATE users
+         SET approval_status = $2, updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, name, email, role, approval_status, created_at, updated_at`,
+        [id, approvalStatus],
+      );
+      await client.query("COMMIT");
+      return result.rows[0];
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 

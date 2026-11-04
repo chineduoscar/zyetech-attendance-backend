@@ -18,6 +18,7 @@ class Receipt {
     paymentMethod,
     details,
     imageUrl,
+    imagePublicId,
   }) {
     let linkedStudentId = studentId ?? null;
     let linkedStudentName = studentName;
@@ -45,9 +46,9 @@ class Receipt {
     const result = await pool.query(
       `INSERT INTO receipts (
          student_id, student_name, course, amount, purpose, payment_date,
-         receipt_number, payment_method, details, image_url
+         receipt_number, payment_method, details, image_url, image_public_id
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id, student_id, student_name, course, amount, purpose,
                  payment_date, created_at, receipt_number, payment_method,
                  details, image_url`,
@@ -62,6 +63,7 @@ class Receipt {
         paymentMethod,
         details,
         imageUrl,
+        imagePublicId,
       ],
     );
     return result.rows[0] ? withReceiptNumber(result.rows[0]) : null;
@@ -79,6 +81,26 @@ class Receipt {
        ORDER BY receipts.created_at DESC, receipts.id DESC`,
     );
     return result.rows.map(withReceiptNumber);
+  }
+
+  static async findById(id) {
+    const result = await pool.query(
+      `SELECT id, receipt_number, image_url, image_public_id
+       FROM receipts
+       WHERE id = $1`,
+      [id],
+    );
+    return result.rows[0] ? withReceiptNumber(result.rows[0]) : null;
+  }
+
+  static async delete(id) {
+    const result = await pool.query(
+      `DELETE FROM receipts
+       WHERE id = $1
+       RETURNING id, receipt_number`,
+      [id],
+    );
+    return result.rows[0] ? withReceiptNumber(result.rows[0]) : null;
   }
 }
 

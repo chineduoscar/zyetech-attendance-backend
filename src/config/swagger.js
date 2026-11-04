@@ -187,7 +187,12 @@ export const swaggerSpec = {
           id: { type: "string", format: "uuid" },
           name: { type: "string", example: "Jane Doe" },
           email: { type: "string", format: "email", example: "jane@example.com" },
-          role: { type: "string", enum: ["user", "admin", "superadmin"] },
+          role: {
+            type: "string",
+            enum: ["admin", "superadmin"],
+            nullable: true,
+            description: "Null until an approved account is assigned an administrator role.",
+          },
           approval_status: { type: "string", enum: ["pending", "approved"] },
           created_at: { type: "string", format: "date-time" },
         },
@@ -227,7 +232,7 @@ export const swaggerSpec = {
         tags: ["Authentication"],
         summary: "Register a user account",
         description:
-          "Creates a pending user account. The role is always user; request-supplied roles are ignored.",
+          "Creates an unapproved account with no assigned role. A superadmin must approve the account and assign either admin or superadmin before it can access the dashboard. Request-supplied roles are ignored.",
         requestBody: requestBody({
           type: "object",
           required: ["name", "email", "password"],
@@ -730,11 +735,32 @@ export const swaggerSpec = {
         },
       },
     },
+    "/api/receipts/{id}": {
+      parameters: [idParameter],
+      delete: {
+        tags: ["Receipts"],
+        summary: "Delete a receipt and its Cloudinary PDF",
+        description:
+          "Available to superadmin only. The receipt file is removed from Cloudinary before its database record.",
+        security: superadminOnly,
+        responses: {
+          "200": success("Receipt and Cloudinary file deleted."),
+          "400": failure("Invalid receipt ID."),
+          "401": failure("Authentication required."),
+          "403": failure("Superadmin role required."),
+          "404": failure("Receipt not found."),
+          "500": failure("The Cloudinary file was deleted, but the receipt record could not be removed."),
+          "502": failure("The receipt file could not be identified or deleted in Cloudinary."),
+          "503": failure("Cloudinary is not configured."),
+        },
+      },
+    },
     "/api/users": {
       get: {
         tags: ["Users"],
         summary: "List registered users",
-        security: protectedAdmin,
+        description: "Available to superadmin only.",
+        security: superadminOnly,
         responses: {
           "200": success("Registered user profiles.", {
             type: "object",
@@ -746,7 +772,7 @@ export const swaggerSpec = {
             },
           }),
           "401": failure("Authentication required."),
-          "403": failure("Admin or superadmin role required."),
+          "403": failure("Superadmin role required."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -755,22 +781,24 @@ export const swaggerSpec = {
       parameters: [userIdParameter],
       patch: {
         tags: ["Users"],
-        summary: "Approve a regular user account",
-        description: "Available to superadmin only. Approval does not grant an admin role.",
+        summary: "Approve or suspend an account",
+        description:
+          "Available to superadmin only. An account requires approved status and an admin or superadmin role to access the dashboard. Suspending the last approved superadmin is not allowed.",
         security: superadminOnly,
         requestBody: requestBody({
           type: "object",
           required: ["approval_status"],
           properties: {
-            approval_status: { type: "string", enum: ["approved"] },
+            approval_status: { type: "string", enum: ["pending", "approved"] },
           },
         }),
         responses: {
-          "200": success("User approved."),
+          "200": success("Account approval status updated."),
           "400": failure("Invalid user ID or approval status."),
           "401": failure("Authentication required."),
           "403": failure("Superadmin role required."),
           "404": failure("User not found."),
+          "409": failure("The last approved superadmin cannot be suspended."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -781,13 +809,13 @@ export const swaggerSpec = {
         tags: ["Users"],
         summary: "Change a user's role",
         description:
-          "Available to superadmin only. Only approved users can be assigned admin or superadmin roles. Users cannot change their own role, and the last superadmin cannot be demoted.",
+          "Available to superadmin only. Only approved accounts can be assigned admin or superadmin roles. Users cannot change their own role, and the last approved superadmin cannot be demoted.",
         security: superadminOnly,
         requestBody: requestBody({
           type: "object",
           required: ["role"],
           properties: {
-            role: { type: "string", enum: ["user", "admin", "superadmin"] },
+            role: { type: "string", enum: ["admin", "superadmin"] },
           },
         }),
         responses: {

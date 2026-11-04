@@ -16,10 +16,10 @@ export async function updateUserRole(req, res) {
     });
   }
 
-  if (!["user", "admin", "superadmin"].includes(role)) {
+  if (!["admin", "superadmin"].includes(role)) {
     return res.status(400).json({
       success: false,
-      message: "Role must be user, admin, or superadmin.",
+      message: "Role must be admin or superadmin.",
       data: null,
     });
   }
@@ -102,10 +102,10 @@ export async function updateUserApproval(req, res) {
       data: null,
     });
   }
-  if (approvalStatus !== "approved") {
+  if (!["approved", "pending"].includes(approvalStatus)) {
     return res.status(400).json({
       success: false,
-      message: "Approval status can only be changed to approved.",
+      message: "Approval status must be approved or pending.",
       data: null,
     });
   }
@@ -133,6 +133,13 @@ export async function updateUserApproval(req, res) {
       data: user,
     });
   } catch (error) {
+    if (error.code === "LAST_SUPERADMIN") {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+        data: null,
+      });
+    }
     logger.error("users.approval_update_failed", error, {
       request_id: req.requestId,
     });

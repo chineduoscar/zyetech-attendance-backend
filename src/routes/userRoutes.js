@@ -8,7 +8,7 @@ import { authenticate, authorize } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-router.get("/", authenticate, authorize("admin", "superadmin"), getUsers);
+router.get("/", authenticate, authorize("superadmin"), getUsers);
 router.patch(
   "/:id/approval",
   authenticate,

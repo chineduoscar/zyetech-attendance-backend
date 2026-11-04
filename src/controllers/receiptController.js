@@ -14,6 +14,23 @@ const isValidId = (id) =>
   BigInt(id) > 0n &&
   BigInt(id) <= 9223372036854775807n;
 
+const getPublicIdFromCloudinaryUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  try {
+    const url = new URL(imageUrl);
+    if (url.hostname !== "res.cloudinary.com") return null;
+    const marker = "/raw/upload/";
+    const markerIndex = url.pathname.indexOf(marker);
+    if (markerIndex === -1) return null;
+    const assetPath = url.pathname
+      .slice(markerIndex + marker.length)
+      .replace(/^v\d+\//, "");
+    return decodeURIComponent(assetPath) || null;
+  } catch {
+    return null;
+  }
+};
+
 const uploadReceipt = (buffer) =>
   new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -171,6 +188,7 @@ export async function createReceipt(req, res) {
       paymentMethod: paymentMethod?.trim() || null,
       details: details ?? {},
       imageUrl: uploadedImage?.secure_url ?? null,
+      imagePublicId: uploadedImage?.public_id ?? null,
     });
     if (!receipt) {
       if (uploadedImage?.public_id)
@@ -212,6 +230,116 @@ export async function getReceipts(req, res) {
     return res.status(500).json({
       success: false,
       message: "An error occurred.",
+      data: null,
+    });
+  }
+}
+
+export async function deleteReceipt(req, res) {
+  const { id } = req.params;
+  if (!isValidId(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "A valid receipt ID is required.",
+      data: null,
+    });
+  }
+
+  let receipt;
+  try {
+    receipt = await Receipt.findById(id);
+    if (!receipt) {
+      return res.status(404).json({
+        success: false,
+        message: "Receipt not found.",
+        data: null,
+      });
+    }
+  } catch (error) {
+    logger.error("receipts.delete_lookup_failed", error, {
+      request_id: req.requestId,
+      receipt_id: id,
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Unable to retrieve the receipt for deletion.",
+      data: null,
+    });
+  }
+
+  const publicId =
+    receipt.image_public_id ||
+    getPublicIdFromCloudinaryUrl(receipt.image_url);
+  if (receipt.image_url && !publicId) {
+    logger.error("receipts.cloudinary_public_id_unavailable", {
+      request_id: req.requestId,
+      receipt_id: id,
+    });
+    return res.status(502).json({
+      success: false,
+      message: "The stored receipt file could not be identified in Cloudinary.",
+      data: null,
+    });
+  }
+
+  if (publicId) {
+    const config = cloudinary.config();
+    if (!config.cloud_name || !config.api_key || !config.api_secret) {
+      return res.status(503).json({
+        success: false,
+        message: "Cloudinary receipt storage is not configured on the server.",
+        data: null,
+      });
+    }
+
+    try {
+      const result = await cloudinary.uploader.destroy(publicId, {
+        resource_type: "raw",
+      });
+      if (!["ok", "not found"].includes(result?.result)) {
+        throw new Error(`Unexpected Cloudinary deletion result: ${result?.result}`);
+      }
+    } catch (error) {
+      logger.error("receipts.cloudinary_delete_failed", error, {
+        request_id: req.requestId,
+        receipt_id: id,
+      });
+      return res.status(502).json({
+        success: false,
+        message: "The receipt file could not be deleted from Cloudinary.",
+        data: null,
+      });
+    }
+  }
+
+  try {
+    const deletedReceipt = await Receipt.delete(id);
+    if (!deletedReceipt) {
+      return res.status(404).json({
+        success: false,
+        message: "Receipt not found.",
+        data: null,
+      });
+    }
+    logger.info("receipts.deleted", {
+      request_id: req.requestId,
+      receipt_id: id,
+      user_id: req.user.id,
+    });
+    return res.status(200).json({
+      success: true,
+      message: "Receipt and its Cloudinary file were deleted successfully.",
+      data: { receipt: deletedReceipt },
+    });
+  } catch (error) {
+    logger.error("receipts.database_delete_failed", error, {
+      request_id: req.requestId,
+      receipt_id: id,
+    });
+    return res.status(500).json({
+      success: false,
+      message:
+        "The Cloudinary file was deleted, but the receipt record could not be removed. Retry the deletion.",
       data: null,
     });
   }

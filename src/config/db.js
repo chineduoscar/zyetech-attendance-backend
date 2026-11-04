@@ -17,10 +17,9 @@ export async function initDatabase() {
       name VARCHAR(100) NOT NULL,
       email VARCHAR(255) NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role VARCHAR(20) NOT NULL DEFAULT 'user',
+      role VARCHAR(20),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      CONSTRAINT users_role_check CHECK (role IN ('user', 'admin', 'superadmin'))
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
 
@@ -31,20 +30,42 @@ export async function initDatabase() {
 
   await pool.query(`
     ALTER TABLE users
-    ADD CONSTRAINT users_role_check
-    CHECK (role IN ('user', 'admin', 'superadmin'));
+    ALTER COLUMN role DROP DEFAULT,
+    ALTER COLUMN role DROP NOT NULL;
   `);
+
+  await pool.query(`
+    UPDATE users
+    SET role = NULL
+    WHERE role = 'user';
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD CONSTRAINT users_role_check
+    CHECK (role IS NULL OR role IN ('admin', 'superadmin'));
+  `);
+
+  const approvalStatusColumn = await pool.query(
+    `SELECT 1
+     FROM information_schema.columns
+     WHERE table_schema = current_schema()
+       AND table_name = 'users'
+       AND column_name = 'approval_status'`,
+  );
 
   await pool.query(`
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'pending';
   `);
 
-  await pool.query(`
-    UPDATE users
-    SET approval_status = 'approved'
-    WHERE role IN ('admin', 'superadmin') AND approval_status = 'pending';
-  `);
+  if (approvalStatusColumn.rowCount === 0) {
+    await pool.query(`
+      UPDATE users
+      SET approval_status = 'approved'
+      WHERE role IN ('admin', 'superadmin');
+    `);
+  }
 
   await pool.query(`
     ALTER TABLE users
@@ -59,7 +80,10 @@ export async function initDatabase() {
 
   if (process.env.BOOTSTRAP_SUPERADMIN_EMAIL) {
     const existingSuperadmin = await pool.query(
-      "SELECT 1 FROM users WHERE role = 'superadmin' LIMIT 1",
+      `SELECT 1
+       FROM users
+       WHERE role = 'superadmin' AND approval_status = 'approved'
+       LIMIT 1`,
     );
     if (existingSuperadmin.rowCount === 0) {
       const result = await pool.query(
@@ -324,6 +348,7 @@ export async function initDatabase() {
     ADD COLUMN IF NOT EXISTS receipt_number VARCHAR(50),
     ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50),
     ADD COLUMN IF NOT EXISTS details JSONB NOT NULL DEFAULT '{}'::jsonb,
-    ADD COLUMN IF NOT EXISTS image_url TEXT;
+    ADD COLUMN IF NOT EXISTS image_url TEXT,
+    ADD COLUMN IF NOT EXISTS image_public_id TEXT;
   `);
 }
