@@ -104,7 +104,8 @@ export async function createReceipt(req, res) {
   ) {
     return res.status(400).json({
       success: false,
-      message: "A student name, course, positive amount, and payment purpose are required.",
+      message:
+        "A student name, course, positive amount, and payment purpose are required.",
       data: null,
     });
   }
@@ -137,7 +138,8 @@ export async function createReceipt(req, res) {
   }
   if (
     paymentDate !== undefined &&
-    (typeof paymentDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(paymentDate))
+    (typeof paymentDate !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(paymentDate))
   ) {
     return res.status(400).json({
       success: false,
@@ -208,7 +210,9 @@ export async function createReceipt(req, res) {
     if (uploadedImage?.public_id) {
       await removeUploadedReceipt(uploadedImage.public_id);
     }
-    logger.error("receipts.create_failed", error, { request_id: req.requestId });
+    logger.error("receipts.create_failed", error, {
+      request_id: req.requestId,
+    });
     return res.status(500).json({
       success: false,
       message: "Unable to save the receipt and its image.",
@@ -268,8 +272,7 @@ export async function deleteReceipt(req, res) {
   }
 
   const publicId =
-    receipt.image_public_id ||
-    getPublicIdFromCloudinaryUrl(receipt.image_url);
+    receipt.image_public_id || getPublicIdFromCloudinaryUrl(receipt.image_url);
   if (receipt.image_url && !publicId) {
     logger.error("receipts.cloudinary_public_id_unavailable", {
       request_id: req.requestId,
@@ -297,7 +300,9 @@ export async function deleteReceipt(req, res) {
         resource_type: "raw",
       });
       if (!["ok", "not found"].includes(result?.result)) {
-        throw new Error(`Unexpected Cloudinary deletion result: ${result?.result}`);
+        throw new Error(
+          `Unexpected Cloudinary deletion result: ${result?.result}`,
+        );
       }
     } catch (error) {
       logger.error("receipts.cloudinary_delete_failed", error, {
@@ -328,7 +333,7 @@ export async function deleteReceipt(req, res) {
     });
     return res.status(200).json({
       success: true,
-      message: "Receipt and its Cloudinary file were deleted successfully.",
+      message: "Receipt has been deleted successfully.",
       data: { receipt: deletedReceipt },
     });
   } catch (error) {
