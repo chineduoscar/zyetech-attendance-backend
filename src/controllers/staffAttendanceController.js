@@ -58,6 +58,55 @@ export async function recordStaffAttendance(req, res) {
   }
 }
 
+export async function signOutStaffAttendance(req, res) {
+  const { identifier } = req.body ?? {};
+
+  if (!isValidStaffNumber(identifier)) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid staff number, for example E26/001.",
+      data: null,
+    });
+  }
+
+  try {
+    const result = await StaffAttendance.signOut({
+      staffNumber: identifier.trim(),
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "No attendance record was found for this staff member today.",
+        data: null,
+      });
+    }
+
+    if (result.alreadySignedOut) {
+      return res.status(409).json({
+        success: false,
+        message: "This staff member has already signed out today.",
+        data: null,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff member signed out successfully.",
+      data: result.attendance,
+    });
+  } catch (error) {
+    logger.error("staff_attendance.sign_out_failed", error, {
+      request_id: req.requestId,
+    });
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred",
+      data: null,
+    });
+  }
+}
+
 export async function getStaffAttendance(req, res) {
   try {
     const attendance = await StaffAttendance.findAll();

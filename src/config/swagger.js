@@ -69,6 +69,8 @@ const attendanceBase = {
   properties: {
     id: { type: "string", example: "1" },
     name: { type: "string", example: "Jane Doe" },
+    time_in: { type: "string", format: "date-time" },
+    time_out: { type: "string", format: "date-time", nullable: true },
     created_at: { type: "string", format: "date-time" },
   },
 };
@@ -566,6 +568,30 @@ export const swaggerSpec = {
         },
       },
     },
+    "/api/student-attendance/sign-out": {
+      post: {
+        tags: ["Student Attendance"],
+        summary: "Sign out a student",
+        description:
+          "Public endpoint. Records the current time out for the matching student attendance record today. Only the student number is required.",
+        requestBody: requestBody({
+          type: "object",
+          required: ["identifier"],
+          properties: {
+            identifier: { type: "string", example: "S26/001" },
+          },
+        }),
+        responses: {
+          "200": success("Student signed out.", {
+            $ref: "#/components/schemas/StudentAttendance",
+          }),
+          "400": failure("Invalid student number."),
+          "404": failure("No attendance record was found for this student today."),
+          "409": failure("Student has already signed out today."),
+          "500": failure("Unexpected server error."),
+        },
+      },
+    },
     "/api/student-attendance/{id}": {
       parameters: [idParameter],
       put: {
@@ -633,6 +659,30 @@ export const swaggerSpec = {
           "400": failure("Invalid staff number."),
           "404": failure("No active staff member was found."),
           "409": failure("Staff attendance was already recorded today."),
+          "500": failure("Unexpected server error."),
+        },
+      },
+    },
+    "/api/staff-attendance/sign-out": {
+      post: {
+        tags: ["Staff Attendance"],
+        summary: "Sign out a staff member",
+        description:
+          "Public endpoint. Records the current time out for the matching staff attendance record today. Only the staff number is required.",
+        requestBody: requestBody({
+          type: "object",
+          required: ["identifier"],
+          properties: {
+            identifier: { type: "string", example: "E26/001" },
+          },
+        }),
+        responses: {
+          "200": success("Staff member signed out.", {
+            $ref: "#/components/schemas/StaffAttendance",
+          }),
+          "400": failure("Invalid staff number."),
+          "404": failure("No attendance record was found for this staff member today."),
+          "409": failure("Staff member has already signed out today."),
           "500": failure("Unexpected server error."),
         },
       },

@@ -110,6 +110,8 @@ export async function initDatabase() {
       "session" VARCHAR(150),
       student_number VARCHAR(20),
       attendance_date DATE NOT NULL DEFAULT CURRENT_DATE,
+      time_in TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      time_out TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
@@ -121,6 +123,8 @@ export async function initDatabase() {
       course VARCHAR(100),
       staff_number VARCHAR(20),
       attendance_date DATE NOT NULL DEFAULT CURRENT_DATE,
+      time_in TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      time_out TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
@@ -148,6 +152,50 @@ export async function initDatabase() {
   await pool.query(`
     ALTER TABLE staff_attendance
     ADD COLUMN IF NOT EXISTS attendance_date DATE;
+  `);
+
+  await pool.query(`
+    ALTER TABLE student_attendance
+    ADD COLUMN IF NOT EXISTS time_in TIMESTAMPTZ;
+  `);
+
+  await pool.query(`
+    ALTER TABLE student_attendance
+    ADD COLUMN IF NOT EXISTS time_out TIMESTAMPTZ;
+  `);
+
+  await pool.query(`
+    ALTER TABLE staff_attendance
+    ADD COLUMN IF NOT EXISTS time_in TIMESTAMPTZ;
+  `);
+
+  await pool.query(`
+    ALTER TABLE staff_attendance
+    ADD COLUMN IF NOT EXISTS time_out TIMESTAMPTZ;
+  `);
+
+  await pool.query(`
+    UPDATE student_attendance
+    SET time_in = created_at
+    WHERE time_in IS NULL;
+  `);
+
+  await pool.query(`
+    UPDATE staff_attendance
+    SET time_in = created_at
+    WHERE time_in IS NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE student_attendance
+    ALTER COLUMN time_in SET DEFAULT NOW(),
+    ALTER COLUMN time_in SET NOT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE staff_attendance
+    ALTER COLUMN time_in SET DEFAULT NOW(),
+    ALTER COLUMN time_in SET NOT NULL;
   `);
 
   await pool.query(`

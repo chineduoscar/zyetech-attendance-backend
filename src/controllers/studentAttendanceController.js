@@ -66,6 +66,55 @@ export async function recordStudentAttendance(req, res) {
   }
 }
 
+export async function signOutStudentAttendance(req, res) {
+  const { identifier } = req.body ?? {};
+
+  if (!isValidStudentNumber(identifier)) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid student number, for example S26/001.",
+      data: null,
+    });
+  }
+
+  try {
+    const result = await StudentAttendance.signOut({
+      studentNumber: identifier.trim(),
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "No attendance record was found for this student today.",
+        data: null,
+      });
+    }
+
+    if (result.alreadySignedOut) {
+      return res.status(409).json({
+        success: false,
+        message: "This student has already signed out today.",
+        data: null,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Student signed out successfully.",
+      data: result.attendance,
+    });
+  } catch (error) {
+    logger.error("student_attendance.sign_out_failed", error, {
+      request_id: req.requestId,
+    });
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred",
+      data: null,
+    });
+  }
+}
+
 export async function getStudentAttendance(req, res) {
   try {
     const attendance = await StudentAttendance.findAll();

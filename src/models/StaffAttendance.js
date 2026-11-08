@@ -34,7 +34,7 @@ class StaffAttendance {
       const attendanceResult = await client.query(
         `INSERT INTO staff_attendance (name, staff_number, attendance_date)
          VALUES ($1, $2, CURRENT_DATE)
-         RETURNING id, name, course, staff_number, attendance_date, created_at`,
+         RETURNING id, name, course, staff_number, attendance_date, time_in, time_out, created_at`,
         [staff.name, staff.staff_number],
       );
       await client.query("COMMIT");
@@ -53,7 +53,7 @@ class StaffAttendance {
 
   static async findAll() {
     const result = await pool.query(
-      `SELECT id, staff_number, name, course, attendance_date, created_at
+      `SELECT id, staff_number, name, course, attendance_date, time_in, time_out, created_at
        FROM staff_attendance
        ORDER BY created_at DESC, id DESC`,
     );
@@ -61,12 +61,48 @@ class StaffAttendance {
     return result.rows;
   }
 
+  static async signOut({ staffNumber }) {
+    const result = await pool.query(
+      `UPDATE staff_attendance
+       SET time_out = NOW()
+       WHERE id = (
+         SELECT id
+         FROM staff_attendance
+         WHERE UPPER(BTRIM(staff_number)) = UPPER(BTRIM($1))
+           AND attendance_date = CURRENT_DATE
+           AND time_out IS NULL
+         ORDER BY time_in DESC, id DESC
+         LIMIT 1
+       )
+         AND time_out IS NULL
+       RETURNING id, name, course, staff_number, attendance_date, time_in, time_out, created_at`,
+      [staffNumber],
+    );
+
+    if (result.rowCount > 0) {
+      return { attendance: result.rows[0], alreadySignedOut: false };
+    }
+
+    const existing = await pool.query(
+      `SELECT id, name, course, staff_number, attendance_date, time_in, time_out, created_at
+       FROM staff_attendance
+       WHERE UPPER(BTRIM(staff_number)) = UPPER(BTRIM($1))
+         AND attendance_date = CURRENT_DATE
+       ORDER BY time_in DESC, id DESC
+       LIMIT 1`,
+      [staffNumber],
+    );
+
+    if (existing.rowCount === 0) return null;
+    return { attendance: existing.rows[0], alreadySignedOut: true };
+  }
+
   static async update(id, { name, course }) {
     const result = await pool.query(
       `UPDATE staff_attendance
        SET name = $2, course = $3
        WHERE id = $1
-       RETURNING id, staff_number, name, course, attendance_date, created_at`,
+       RETURNING id, staff_number, name, course, attendance_date, time_in, time_out, created_at`,
       [id, name, course],
     );
 
