@@ -547,6 +547,18 @@ export const swaggerSpec = {
       },
       post: {
         tags: ["Student Attendance"],
+        summary: "Retired student sign-in endpoint",
+        deprecated: true,
+        description:
+          "Returns 410 Gone. Use POST /api/student-attendance/sign-in.",
+        responses: {
+          "410": failure("This attendance endpoint has been retired."),
+        },
+      },
+    },
+    "/api/student-attendance/sign-in": {
+      post: {
+        tags: ["Student Attendance"],
         summary: "Record student attendance",
         description: "Public endpoint. A student can be marked once per day.",
         requestBody: requestBody({
@@ -641,6 +653,18 @@ export const swaggerSpec = {
           "500": failure("Unexpected server error."),
         },
       },
+      post: {
+        tags: ["Staff Attendance"],
+        summary: "Retired staff sign-in endpoint",
+        deprecated: true,
+        description:
+          "Returns 410 Gone. Use POST /api/staff-attendance/sign-in.",
+        responses: {
+          "410": failure("This attendance endpoint has been retired."),
+        },
+      },
+    },
+    "/api/staff-attendance/sign-in": {
       post: {
         tags: ["Staff Attendance"],
         summary: "Record staff attendance",
