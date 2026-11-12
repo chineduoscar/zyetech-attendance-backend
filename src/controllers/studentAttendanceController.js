@@ -1,5 +1,6 @@
 import StudentAttendance from "../models/StudentAttendance.js";
 import { logger } from "../utils/logger.js";
+import { getAttendanceScheduleError } from "../utils/attendanceSchedule.js";
 
 const isNonEmptyString = (value) =>
   typeof value === "string" && value.trim().length > 0;
@@ -9,14 +10,34 @@ const isValidId = (id) =>
   BigInt(id) <= 9223372036854775807n;
 const isValidStudentNumber = (value) =>
   typeof value === "string" && /^S\d{2}\/\d{3,}$/i.test(value.trim());
+const isValidEmail = (value) =>
+  typeof value === "string" &&
+  value.trim().length <= 255 &&
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 export async function recordStudentAttendance(req, res) {
-  const { identifier, session } = req.body ?? {};
+  const scheduleError = getAttendanceScheduleError("sign-in");
+  if (scheduleError) {
+    return res.status(403).json({
+      success: false,
+      message: scheduleError,
+      data: null,
+    });
+  }
+
+  const { identifier, email, session } = req.body ?? {};
 
   if (!isValidStudentNumber(identifier)) {
     return res.status(400).json({
       success: false,
       message: "Enter a valid student number, for example S26/001.",
+      data: null,
+    });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid email address.",
       data: null,
     });
   }
@@ -31,13 +52,14 @@ export async function recordStudentAttendance(req, res) {
   try {
     const attendance = await StudentAttendance.create({
       studentNumber: identifier.trim(),
+      email: email.trim(),
       session: typeof session === "string" ? session.trim() || null : null,
     });
 
     if (!attendance) {
       return res.status(404).json({
         success: false,
-        message: "No active student was found with that student number.",
+        message: "No active student was found with that student number and email address.",
         data: null,
       });
     }
@@ -67,7 +89,16 @@ export async function recordStudentAttendance(req, res) {
 }
 
 export async function signOutStudentAttendance(req, res) {
-  const { identifier } = req.body ?? {};
+  const scheduleError = getAttendanceScheduleError("sign-out");
+  if (scheduleError) {
+    return res.status(403).json({
+      success: false,
+      message: scheduleError,
+      data: null,
+    });
+  }
+
+  const { identifier, email } = req.body ?? {};
 
   if (!isValidStudentNumber(identifier)) {
     return res.status(400).json({
@@ -76,10 +107,18 @@ export async function signOutStudentAttendance(req, res) {
       data: null,
     });
   }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid email address.",
+      data: null,
+    });
+  }
 
   try {
     const result = await StudentAttendance.signOut({
       studentNumber: identifier.trim(),
+      email: email.trim(),
     });
 
     if (!result) {

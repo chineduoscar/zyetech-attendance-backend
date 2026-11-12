@@ -1,5 +1,6 @@
 import StaffAttendance from "../models/StaffAttendance.js";
 import { logger } from "../utils/logger.js";
+import { getAttendanceScheduleError } from "../utils/attendanceSchedule.js";
 
 const isNonEmptyString = (value) =>
   typeof value === "string" && value.trim().length > 0;
@@ -9,9 +10,22 @@ const isValidId = (id) =>
   BigInt(id) <= 9223372036854775807n;
 const isValidStaffNumber = (value) =>
   typeof value === "string" && /^E\d{2}\/\d{3,}$/i.test(value.trim());
+const isValidEmail = (value) =>
+  typeof value === "string" &&
+  value.trim().length <= 255 &&
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 export async function recordStaffAttendance(req, res) {
-  const { identifier } = req.body ?? {};
+  const scheduleError = getAttendanceScheduleError("sign-in");
+  if (scheduleError) {
+    return res.status(403).json({
+      success: false,
+      message: scheduleError,
+      data: null,
+    });
+  }
+
+  const { identifier, email } = req.body ?? {};
 
   if (!isValidStaffNumber(identifier)) {
     return res.status(400).json({
@@ -20,16 +34,24 @@ export async function recordStaffAttendance(req, res) {
       data: null,
     });
   }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid email address.",
+      data: null,
+    });
+  }
 
   try {
     const attendance = await StaffAttendance.create({
       staffNumber: identifier.trim(),
+      email: email.trim(),
     });
 
     if (!attendance) {
       return res.status(404).json({
         success: false,
-        message: "No active staff member was found with that staff number.",
+        message: "No active staff member was found with that staff number and email address.",
         data: null,
       });
     }
@@ -59,7 +81,16 @@ export async function recordStaffAttendance(req, res) {
 }
 
 export async function signOutStaffAttendance(req, res) {
-  const { identifier } = req.body ?? {};
+  const scheduleError = getAttendanceScheduleError("sign-out");
+  if (scheduleError) {
+    return res.status(403).json({
+      success: false,
+      message: scheduleError,
+      data: null,
+    });
+  }
+
+  const { identifier, email } = req.body ?? {};
 
   if (!isValidStaffNumber(identifier)) {
     return res.status(400).json({
@@ -68,10 +99,18 @@ export async function signOutStaffAttendance(req, res) {
       data: null,
     });
   }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter a valid email address.",
+      data: null,
+    });
+  }
 
   try {
     const result = await StaffAttendance.signOut({
       staffNumber: identifier.trim(),
+      email: email.trim(),
     });
 
     if (!result) {

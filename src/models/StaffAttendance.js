@@ -1,7 +1,7 @@
 import { pool } from "../config/db.js";
 
 class StaffAttendance {
-  static async create({ staffNumber }) {
+  static async create({ staffNumber, email }) {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -9,9 +9,10 @@ class StaffAttendance {
         `SELECT id, staff_number, name, email, roles
          FROM staff
          WHERE UPPER(BTRIM(staff_number)) = UPPER(BTRIM($1))
+           AND LOWER(BTRIM(email)) = LOWER(BTRIM($2))
            AND status = 'active'
          FOR SHARE`,
-        [staffNumber],
+        [staffNumber, email],
       );
       const staff = staffResult.rows[0];
       if (!staff) {
@@ -61,22 +62,26 @@ class StaffAttendance {
     return result.rows;
   }
 
-  static async signOut({ staffNumber }) {
+  static async signOut({ staffNumber, email }) {
     const result = await pool.query(
       `UPDATE staff_attendance
        SET time_out = NOW()
        WHERE id = (
-         SELECT id
-         FROM staff_attendance
-         WHERE UPPER(BTRIM(staff_number)) = UPPER(BTRIM($1))
-           AND attendance_date = CURRENT_DATE
-           AND time_out IS NULL
-         ORDER BY time_in DESC, id DESC
+         SELECT attendance.id
+         FROM staff_attendance attendance
+         JOIN staff
+           ON UPPER(BTRIM(staff.staff_number)) = UPPER(BTRIM(attendance.staff_number))
+         WHERE UPPER(BTRIM(attendance.staff_number)) = UPPER(BTRIM($1))
+           AND LOWER(BTRIM(staff.email)) = LOWER(BTRIM($2))
+           AND staff.status = 'active'
+           AND attendance.attendance_date = CURRENT_DATE
+           AND attendance.time_out IS NULL
+         ORDER BY attendance.time_in DESC, attendance.id DESC
          LIMIT 1
        )
          AND time_out IS NULL
        RETURNING id, name, course, staff_number, attendance_date, time_in, time_out, created_at`,
-      [staffNumber],
+      [staffNumber, email],
     );
 
     if (result.rowCount > 0) {
@@ -84,13 +89,19 @@ class StaffAttendance {
     }
 
     const existing = await pool.query(
-      `SELECT id, name, course, staff_number, attendance_date, time_in, time_out, created_at
-       FROM staff_attendance
-       WHERE UPPER(BTRIM(staff_number)) = UPPER(BTRIM($1))
-         AND attendance_date = CURRENT_DATE
-       ORDER BY time_in DESC, id DESC
+      `SELECT attendance.id, attendance.name, attendance.course, attendance.staff_number,
+              attendance.attendance_date, attendance.time_in, attendance.time_out,
+              attendance.created_at
+       FROM staff_attendance attendance
+       JOIN staff
+         ON UPPER(BTRIM(staff.staff_number)) = UPPER(BTRIM(attendance.staff_number))
+       WHERE UPPER(BTRIM(attendance.staff_number)) = UPPER(BTRIM($1))
+         AND LOWER(BTRIM(staff.email)) = LOWER(BTRIM($2))
+         AND staff.status = 'active'
+         AND attendance.attendance_date = CURRENT_DATE
+       ORDER BY attendance.time_in DESC, attendance.id DESC
        LIMIT 1`,
-      [staffNumber],
+      [staffNumber, email],
     );
 
     if (existing.rowCount === 0) return null;

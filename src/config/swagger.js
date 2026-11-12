@@ -563,9 +563,10 @@ export const swaggerSpec = {
         description: "Public endpoint. A student can be marked once per day.",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier"],
+          required: ["identifier", "email"],
           properties: {
             identifier: { type: "string", example: "S26/001" },
+            email: { type: "string", format: "email", example: "student@example.com" },
             session: { type: "string", nullable: true, example: "Morning" },
           },
         }),
@@ -573,9 +574,10 @@ export const swaggerSpec = {
           "201": success("Attendance recorded.", {
             $ref: "#/components/schemas/StudentAttendance",
           }),
-          "400": failure("Invalid student number or session."),
-          "404": failure("No active student was found."),
+          "400": failure("Invalid student number, email, or session."),
+          "404": failure("No active student matched the student number and email."),
           "409": failure("Student attendance was already recorded today."),
+          "403": failure("Student sign-in is unavailable before 10:00 AM Africa/Lagos time."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -585,21 +587,23 @@ export const swaggerSpec = {
         tags: ["Student Attendance"],
         summary: "Sign out a student",
         description:
-          "Public endpoint. Records the current time out for the matching student attendance record today. Only the student number is required.",
+          "Public endpoint. Records the current time out for today's attendance only when the student number and registered email match an active student.",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier"],
+          required: ["identifier", "email"],
           properties: {
             identifier: { type: "string", example: "S26/001" },
+            email: { type: "string", format: "email", example: "student@example.com" },
           },
         }),
         responses: {
           "200": success("Student signed out.", {
             $ref: "#/components/schemas/StudentAttendance",
           }),
-          "400": failure("Invalid student number."),
+          "400": failure("Invalid student number or email."),
           "404": failure("No attendance record was found for this student today."),
           "409": failure("Student has already signed out today."),
+          "403": failure("Student sign-out closes at 7:00 PM Africa/Lagos time."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -671,18 +675,20 @@ export const swaggerSpec = {
         description: "Public endpoint. A staff member can be marked once per day.",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier"],
+          required: ["identifier", "email"],
           properties: {
             identifier: { type: "string", example: "E26/001" },
+            email: { type: "string", format: "email", example: "staff@example.com" },
           },
         }),
         responses: {
           "201": success("Attendance recorded.", {
             $ref: "#/components/schemas/StaffAttendance",
           }),
-          "400": failure("Invalid staff number."),
-          "404": failure("No active staff member was found."),
+          "400": failure("Invalid staff number or email."),
+          "404": failure("No active staff member matched the staff number and email."),
           "409": failure("Staff attendance was already recorded today."),
+          "403": failure("Staff sign-in is unavailable before 10:00 AM Africa/Lagos time."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -692,21 +698,23 @@ export const swaggerSpec = {
         tags: ["Staff Attendance"],
         summary: "Sign out a staff member",
         description:
-          "Public endpoint. Records the current time out for the matching staff attendance record today. Only the staff number is required.",
+          "Public endpoint. Records the current time out for today's attendance only when the staff number and registered email match an active staff member.",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier"],
+          required: ["identifier", "email"],
           properties: {
             identifier: { type: "string", example: "E26/001" },
+            email: { type: "string", format: "email", example: "staff@example.com" },
           },
         }),
         responses: {
           "200": success("Staff member signed out.", {
             $ref: "#/components/schemas/StaffAttendance",
           }),
-          "400": failure("Invalid staff number."),
+          "400": failure("Invalid staff number or email."),
           "404": failure("No attendance record was found for this staff member today."),
           "409": failure("Staff member has already signed out today."),
+          "403": failure("Staff sign-out closes at 7:00 PM Africa/Lagos time."),
           "500": failure("Unexpected server error."),
         },
       },

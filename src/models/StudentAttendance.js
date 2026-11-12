@@ -1,7 +1,7 @@
 import { pool } from "../config/db.js";
 
 class StudentAttendance {
-  static async create({ studentNumber, session = null }) {
+  static async create({ studentNumber, email, session = null }) {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -9,9 +9,10 @@ class StudentAttendance {
         `SELECT id, student_number, name, email, course
          FROM students
          WHERE UPPER(BTRIM(student_number)) = UPPER(BTRIM($1))
+           AND LOWER(BTRIM(email)) = LOWER(BTRIM($2))
            AND status = 'active'
          FOR SHARE`,
-        [studentNumber],
+        [studentNumber, email],
       );
       const student = studentResult.rows[0];
       if (!student) {
@@ -57,22 +58,26 @@ class StudentAttendance {
     return result.rows;
   }
 
-  static async signOut({ studentNumber }) {
+  static async signOut({ studentNumber, email }) {
     const result = await pool.query(
       `UPDATE student_attendance
        SET time_out = NOW()
        WHERE id = (
-         SELECT id
-         FROM student_attendance
-         WHERE UPPER(BTRIM(student_number)) = UPPER(BTRIM($1))
-           AND attendance_date = CURRENT_DATE
-           AND time_out IS NULL
-         ORDER BY time_in DESC, id DESC
+         SELECT attendance.id
+         FROM student_attendance attendance
+         JOIN students
+           ON UPPER(BTRIM(students.student_number)) = UPPER(BTRIM(attendance.student_number))
+         WHERE UPPER(BTRIM(attendance.student_number)) = UPPER(BTRIM($1))
+           AND LOWER(BTRIM(students.email)) = LOWER(BTRIM($2))
+           AND students.status = 'active'
+           AND attendance.attendance_date = CURRENT_DATE
+           AND attendance.time_out IS NULL
+         ORDER BY attendance.time_in DESC, attendance.id DESC
          LIMIT 1
        )
          AND time_out IS NULL
        RETURNING id, name, course, "session", student_number, attendance_date, time_in, time_out, created_at`,
-      [studentNumber],
+      [studentNumber, email],
     );
 
     if (result.rowCount > 0) {
@@ -80,13 +85,19 @@ class StudentAttendance {
     }
 
     const existing = await pool.query(
-      `SELECT id, name, course, "session", student_number, attendance_date, time_in, time_out, created_at
-       FROM student_attendance
-       WHERE UPPER(BTRIM(student_number)) = UPPER(BTRIM($1))
-         AND attendance_date = CURRENT_DATE
-       ORDER BY time_in DESC, id DESC
+      `SELECT attendance.id, attendance.name, attendance.course, attendance."session",
+              attendance.student_number, attendance.attendance_date,
+              attendance.time_in, attendance.time_out, attendance.created_at
+       FROM student_attendance attendance
+       JOIN students
+         ON UPPER(BTRIM(students.student_number)) = UPPER(BTRIM(attendance.student_number))
+       WHERE UPPER(BTRIM(attendance.student_number)) = UPPER(BTRIM($1))
+         AND LOWER(BTRIM(students.email)) = LOWER(BTRIM($2))
+         AND students.status = 'active'
+         AND attendance.attendance_date = CURRENT_DATE
+       ORDER BY attendance.time_in DESC, attendance.id DESC
        LIMIT 1`,
-      [studentNumber],
+      [studentNumber, email],
     );
 
     if (existing.rowCount === 0) return null;
