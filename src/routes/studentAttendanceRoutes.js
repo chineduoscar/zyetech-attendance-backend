@@ -7,10 +7,11 @@ import {
   deleteStudentAttendance,
 } from "../controllers/studentAttendanceController.js";
 import { authenticate, authorize } from "../middleware/authMiddleware.js";
+import { requireOfficeLocation } from "../middleware/requireOfficeLocation.js";
 
 const router = Router();
 
-router.post("/sign-in", recordStudentAttendance);
+router.post("/sign-in", requireOfficeLocation, recordStudentAttendance);
 router.post("/", (_req, res) =>
   res.status(410).json({
     success: false,
@@ -18,7 +19,7 @@ router.post("/", (_req, res) =>
     data: null,
   }),
 );
-router.post("/sign-out", signOutStudentAttendance);
+router.post("/sign-out", requireOfficeLocation, signOutStudentAttendance);
 router.get(
   "/",
   authenticate,

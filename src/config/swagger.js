@@ -560,24 +560,27 @@ export const swaggerSpec = {
       post: {
         tags: ["Student Attendance"],
         summary: "Record student attendance",
-        description: "Public endpoint. A student can be marked once per day.",
+        description:
+          "Public endpoint. A student can be marked once per day and must be within 200 meters of the office (4.830100, 7.034431).",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier", "email"],
+          required: ["identifier", "email", "latitude", "longitude"],
           properties: {
             identifier: { type: "string", example: "S26/001" },
             email: { type: "string", format: "email", example: "student@example.com" },
             session: { type: "string", nullable: true, example: "Morning" },
+            latitude: { type: "number", example: 4.8301 },
+            longitude: { type: "number", example: 7.034431 },
           },
         }),
         responses: {
           "201": success("Attendance recorded.", {
             $ref: "#/components/schemas/StudentAttendance",
           }),
-          "400": failure("Invalid student number, email, or session."),
+          "400": failure("Invalid student number, email, session, or location coordinates."),
           "404": failure("No active student matched the student number and email."),
           "409": failure("Student attendance was already recorded today."),
-          "403": failure("Student sign-in is unavailable before 10:00 AM Africa/Lagos time."),
+          "403": failure("Student sign-in is unavailable at this time or outside the 200-meter office radius."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -587,23 +590,25 @@ export const swaggerSpec = {
         tags: ["Student Attendance"],
         summary: "Sign out a student",
         description:
-          "Public endpoint. Records the current time out for today's attendance only when the student number and registered email match an active student.",
+          "Public endpoint. Records the current time out for today's attendance only when the student number and registered email match an active student within 200 meters of the office (4.830100, 7.034431).",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier", "email"],
+          required: ["identifier", "email", "latitude", "longitude"],
           properties: {
             identifier: { type: "string", example: "S26/001" },
             email: { type: "string", format: "email", example: "student@example.com" },
+            latitude: { type: "number", example: 4.8301 },
+            longitude: { type: "number", example: 7.034431 },
           },
         }),
         responses: {
           "200": success("Student signed out.", {
             $ref: "#/components/schemas/StudentAttendance",
           }),
-          "400": failure("Invalid student number or email."),
+          "400": failure("Invalid student number, email, or location coordinates."),
           "404": failure("No attendance record was found for this student today."),
           "409": failure("Student has already signed out today."),
-          "403": failure("Student sign-out closes at 7:00 PM Africa/Lagos time."),
+          "403": failure("Student sign-out is unavailable at this time or outside the 200-meter office radius."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -672,23 +677,26 @@ export const swaggerSpec = {
       post: {
         tags: ["Staff Attendance"],
         summary: "Record staff attendance",
-        description: "Public endpoint. A staff member can be marked once per day.",
+        description:
+          "Public endpoint. A staff member can be marked once per day and must be within 200 meters of the office (4.830100, 7.034431).",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier", "email"],
+          required: ["identifier", "email", "latitude", "longitude"],
           properties: {
             identifier: { type: "string", example: "E26/001" },
             email: { type: "string", format: "email", example: "staff@example.com" },
+            latitude: { type: "number", example: 4.8301 },
+            longitude: { type: "number", example: 7.034431 },
           },
         }),
         responses: {
           "201": success("Attendance recorded.", {
             $ref: "#/components/schemas/StaffAttendance",
           }),
-          "400": failure("Invalid staff number or email."),
+          "400": failure("Invalid staff number, email, or location coordinates."),
           "404": failure("No active staff member matched the staff number and email."),
           "409": failure("Staff attendance was already recorded today."),
-          "403": failure("Staff sign-in is unavailable before 10:00 AM Africa/Lagos time."),
+          "403": failure("Staff sign-in is unavailable at this time or outside the 200-meter office radius."),
           "500": failure("Unexpected server error."),
         },
       },
@@ -698,23 +706,25 @@ export const swaggerSpec = {
         tags: ["Staff Attendance"],
         summary: "Sign out a staff member",
         description:
-          "Public endpoint. Records the current time out for today's attendance only when the staff number and registered email match an active staff member.",
+          "Public endpoint. Records the current time out for today's attendance only when the staff number and registered email match an active staff member within 200 meters of the office (4.830100, 7.034431).",
         requestBody: requestBody({
           type: "object",
-          required: ["identifier", "email"],
+          required: ["identifier", "email", "latitude", "longitude"],
           properties: {
             identifier: { type: "string", example: "E26/001" },
             email: { type: "string", format: "email", example: "staff@example.com" },
+            latitude: { type: "number", example: 4.8301 },
+            longitude: { type: "number", example: 7.034431 },
           },
         }),
         responses: {
           "200": success("Staff member signed out.", {
             $ref: "#/components/schemas/StaffAttendance",
           }),
-          "400": failure("Invalid staff number or email."),
+          "400": failure("Invalid staff number, email, or location coordinates."),
           "404": failure("No attendance record was found for this staff member today."),
           "409": failure("Staff member has already signed out today."),
-          "403": failure("Staff sign-out closes at 7:00 PM Africa/Lagos time."),
+          "403": failure("Staff sign-out is unavailable at this time or outside the 200-meter office radius."),
           "500": failure("Unexpected server error."),
         },
       },
