@@ -1,4 +1,4 @@
-const SIGN_IN_START_MINUTES = 10 * 60;
+const SIGN_IN_START_MINUTES = 9 * 60 + 40;
 const SIGN_OUT_END_MINUTES = 19 * 60;
 
 const getAttendanceMinutes = (date = new Date()) => {
@@ -16,7 +16,7 @@ const getAttendanceMinutes = (date = new Date()) => {
 export const getAttendanceScheduleError = (action, date = new Date()) => {
   const minutes = getAttendanceMinutes(date);
   if (action === "sign-in" && minutes < SIGN_IN_START_MINUTES) {
-    return "Sign-in is unavailable before 10:00 AM. Please wait until 10:00 AM.";
+    return "Sign-in is unavailable before 9:40 AM. Please wait until 9:40 AM.";
   }
   if (action === "sign-in" && minutes >= SIGN_OUT_END_MINUTES) {
     return "Sign-in closes at 7:00 PM. Sign-in is unavailable now.";
