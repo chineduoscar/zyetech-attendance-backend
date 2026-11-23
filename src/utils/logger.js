@@ -12,7 +12,7 @@ const serializeError = (error) => {
 
 const winstonLogger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
-  defaultMeta: { service: "zyetech-attendance-api" },
+  defaultMeta: { service: "api-zyetech-attendance" },
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
