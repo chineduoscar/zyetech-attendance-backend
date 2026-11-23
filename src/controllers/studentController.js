@@ -6,6 +6,7 @@ const COURSES = [
   "Back End Development",
   "Content Creation",
   "Cybersecurity",
+  "Computer Appreciation",
   "Data Analysis with AI and Machine Learning",
   "Data Analysis with Python",
   "Data Analytics",
@@ -25,7 +26,8 @@ const COURSES = [
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 const isValidDate = (date) => {
-  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return false;
   const parsedDate = new Date(`${date}T00:00:00Z`);
   return (
     !Number.isNaN(parsedDate.getTime()) &&
@@ -69,7 +71,8 @@ const validateRegistration = (body) => {
         amount <= 0 ||
         amount > 9999999999.99
       ) {
-        errors["receipt.amount"] = "Amount must be a positive number with up to 2 decimal places.";
+        errors["receipt.amount"] =
+          "Amount must be a positive number with up to 2 decimal places.";
       }
       if (typeof receipt.purpose !== "string" || !receipt.purpose.trim()) {
         errors["receipt.purpose"] = "Purpose is required.";
@@ -80,7 +83,8 @@ const validateRegistration = (body) => {
         receipt.payment_date !== undefined &&
         !isValidDate(receipt.payment_date)
       ) {
-        errors["receipt.payment_date"] = "Payment date must be a valid YYYY-MM-DD date.";
+        errors["receipt.payment_date"] =
+          "Payment date must be a valid YYYY-MM-DD date.";
       }
       normalizedReceipt = {
         amount,
@@ -103,9 +107,7 @@ const validateRegistration = (body) => {
 };
 
 const isValidId = (id) =>
-  /^\d+$/.test(id) &&
-  BigInt(id) > 0n &&
-  BigInt(id) <= 9223372036854775807n;
+  /^\d+$/.test(id) && BigInt(id) > 0n && BigInt(id) <= 9223372036854775807n;
 
 const sendServerError = (res, error, action) => {
   logger.error(`students.${action.replaceAll(" ", "_")}_failed`, error, {
@@ -143,7 +145,10 @@ export async function registerStudent(req, res) {
       data: { student: created },
     });
   } catch (error) {
-    if (error.code === "23505" && error.constraint === "students_email_lower_unique") {
+    if (
+      error.code === "23505" &&
+      error.constraint === "students_email_lower_unique"
+    ) {
       return res.status(409).json({
         success: false,
         message: "A student with this email already exists.",
@@ -178,7 +183,9 @@ export async function getStudent(req, res) {
   try {
     const student = await StudentModel.findById(req.params.id);
     if (!student) {
-      return res.status(404).json({ success: false, message: "Student not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
     }
     return res.status(200).json({
       success: true,
@@ -216,7 +223,9 @@ export async function updateStudent(req, res) {
       status: body.status,
     });
     if (!updated) {
-      return res.status(404).json({ success: false, message: "Student not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
     }
     return res.status(200).json({
       success: true,
@@ -224,7 +233,10 @@ export async function updateStudent(req, res) {
       data: { student: updated },
     });
   } catch (error) {
-    if (error.code === "23505" && error.constraint === "students_email_lower_unique") {
+    if (
+      error.code === "23505" &&
+      error.constraint === "students_email_lower_unique"
+    ) {
       return res.status(409).json({
         success: false,
         message: "A student with this email already exists.",
@@ -246,7 +258,9 @@ export async function deleteStudent(req, res) {
   try {
     const deleted = await StudentModel.delete(req.params.id);
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Student not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found." });
     }
     return res.status(200).json({
       success: true,
